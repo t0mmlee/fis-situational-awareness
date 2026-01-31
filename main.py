@@ -38,15 +38,20 @@ async def run_temporal_worker():
 
     # Connect to Temporal
     # Use TLS and API key if connecting to Temporal Cloud
-    connect_params = {
-        "target_host": config.temporal.host,
-        "namespace": config.temporal.namespace
-    }
     if config.temporal.api_key:
-        connect_params["tls"] = True
-        connect_params["api_key"] = config.temporal.api_key
-
-    client = await Client.connect(**connect_params)
+        # Temporal Cloud connection with TLS and API key
+        client = await Client.connect(
+            config.temporal.host,
+            namespace=config.temporal.namespace,
+            tls=True,
+            api_key=config.temporal.api_key
+        )
+    else:
+        # Local Temporal server connection
+        client = await Client.connect(
+            config.temporal.host,
+            namespace=config.temporal.namespace
+        )
 
     # TODO: Import your workflows and activities
     # from .workflows import IngestionWorkflow
