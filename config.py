@@ -42,6 +42,7 @@ class TemporalSettings(BaseSettings):
     host: str = Field(default="localhost:7233", description="Temporal server host")
     namespace: str = Field(default="fis-awareness", description="Temporal namespace")
     task_queue: str = Field(default="fis-ingestion", description="Task queue name")
+    api_key: Optional[str] = Field(default=None, description="Temporal Cloud API key")
 
     model_config = SettingsConfigDict(env_prefix="TEMPORAL_")
 
