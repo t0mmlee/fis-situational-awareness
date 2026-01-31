@@ -11,8 +11,8 @@ import os
 import signal
 import sys
 
-from .config import config
-from .web import app as web_app
+from config import config
+from web import app as web_app
 
 # Configure logging
 logging.basicConfig(
