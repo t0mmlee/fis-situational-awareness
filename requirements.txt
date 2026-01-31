@@ -1,7 +1,11 @@
 # FIS Situational Awareness System - Python Dependencies
 
 # Core framework
-python>=3.11
+# Python 3.11+ (specified in Dockerfile)
+
+# Web server (for Railway health checks)
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
 
 # Workflow orchestration
 temporalio>=1.5.0
