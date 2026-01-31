@@ -35,4 +35,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE 9090
 
 # Default command (run Temporal worker)
-CMD ["python", "-m", "fis_situational_awareness.main"]
+CMD ["python", "main.py"]
