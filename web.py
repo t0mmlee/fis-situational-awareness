@@ -14,7 +14,7 @@ from typing import Dict
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from .config import config
+from config import config
 
 # Configure logging
 logging.basicConfig(
