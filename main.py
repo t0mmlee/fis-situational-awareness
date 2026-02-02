@@ -36,29 +36,42 @@ async def run_temporal_worker():
 
     logger.info("Starting Temporal worker...")
 
-    # Connect to Temporal
-    # Use TLS and API key if connecting to Temporal Cloud
-    if config.temporal.api_key:
-        # Temporal Cloud connection with TLS and API key
-        from temporalio.client import TLSConfig
+    try:
+        # Connect to Temporal
+        # Use TLS and API key if connecting to Temporal Cloud
+        if config.temporal.api_key:
+            # Temporal Cloud connection with TLS and API key
+            from temporalio.client import TLSConfig
 
-        tls_config = TLSConfig(
-            # Temporal Cloud requires TLS
-            # Default system cert verification is used
-        )
+            logger.info(f"Connecting to Temporal Cloud: {config.temporal.host}")
+            tls_config = TLSConfig(
+                # Temporal Cloud requires TLS
+                # Default system cert verification is used
+            )
 
-        client = await Client.connect(
-            config.temporal.host,
-            namespace=config.temporal.namespace,
-            tls=tls_config,
-            api_key=config.temporal.api_key
-        )
-    else:
-        # Local Temporal server connection
-        client = await Client.connect(
-            config.temporal.host,
-            namespace=config.temporal.namespace
-        )
+            client = await Client.connect(
+                config.temporal.host,
+                namespace=config.temporal.namespace,
+                tls=tls_config,
+                api_key=config.temporal.api_key
+            )
+        else:
+            # Local Temporal server connection
+            logger.info(f"Connecting to local Temporal server: {config.temporal.host}")
+            client = await Client.connect(
+                config.temporal.host,
+                namespace=config.temporal.namespace
+            )
+    except Exception as e:
+        logger.error(f"Failed to connect to Temporal server: {e}")
+        logger.error(f"Host: {config.temporal.host}, Namespace: {config.temporal.namespace}")
+        logger.error("Please ensure:")
+        logger.error("  1. Temporal server is running and accessible")
+        logger.error("  2. TEMPORAL__API_KEY is set correctly (for Temporal Cloud)")
+        logger.error("  3. TEMPORAL__HOST and TEMPORAL__NAMESPACE are correct")
+        logger.error("  4. Network connectivity to Temporal server is available")
+        logger.error("Alternatively, set RUN_MODE=web to run web server only")
+        raise
 
     # Import workflows and activities
     from workflows import IngestionWorkflow, ScheduledIngestionWorkflow

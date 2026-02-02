@@ -11,5 +11,10 @@ healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
+# Run web server only (no Temporal worker)
+# This prevents connection errors when Temporal Cloud is not configured
+[deploy.env]
+RUN_MODE = "web"
+
 [[services]]
 name = "fis-awareness-app"

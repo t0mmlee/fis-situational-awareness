@@ -143,6 +143,126 @@ Configuration is managed via environment variables and can be set in `.env` file
 
 See `config.py` for full configuration options.
 
+### Deployment Modes
+
+The application supports three deployment modes via the `RUN_MODE` environment variable:
+
+#### 1. **Web Server Only** (Recommended for Railway/PaaS)
+
+```bash
+RUN_MODE=web
+```
+
+**What it does:**
+- ✅ Starts FastAPI web server on port 8080
+- ✅ Health check endpoint (`/health`)
+- ✅ Status endpoint (`/status`) - shows ingestion pipeline status
+- ✅ Metrics endpoint (`/metrics`) - Prometheus metrics
+- ❌ Does NOT start Temporal worker (no ingestion runs)
+
+**Use cases:**
+- Railway deployments (web-only container)
+- Health check/status API servers
+- Development/testing without Temporal
+- When Temporal Cloud credentials are not available
+
+**Configuration:**
+```toml
+# railway.toml
+[deploy.env]
+RUN_MODE = "web"
+```
+
+#### 2. **Temporal Worker Only**
+
+```bash
+RUN_MODE=worker
+```
+
+**What it does:**
+- ❌ Does NOT start web server
+- ✅ Starts Temporal worker for ingestion workflows
+- ✅ Executes scheduled ingestions every 3 days
+- ✅ Processes changes and sends alerts
+
+**Use cases:**
+- Separate worker containers
+- Background processing services
+- When you have a separate health check mechanism
+
+**Requirements:**
+- Temporal server must be accessible
+- For Temporal Cloud: `TEMPORAL__API_KEY` must be set
+- Database and MCP server must be accessible
+
+#### 3. **Both Web + Worker** (Default)
+
+```bash
+RUN_MODE=both  # or omit RUN_MODE entirely
+```
+
+**What it does:**
+- ✅ Starts web server (port 8080)
+- ✅ Starts Temporal worker (in separate process)
+- ✅ Full functionality
+
+**Use cases:**
+- Local development
+- Single-container deployments
+- Kubernetes pods with proper resources
+
+**Resource Requirements:**
+- CPU: 2+ cores recommended
+- Memory: 2GB+ recommended
+- Handles both HTTP requests and background processing
+
+### Railway-Specific Configuration
+
+For Railway deployments, the system defaults to **web-only mode** via `railway.toml`:
+
+```toml
+[deploy.env]
+RUN_MODE = "web"
+```
+
+This prevents connection errors when Temporal Cloud is not configured. To run the Temporal worker:
+
+1. **Option A:** Deploy worker separately
+   - Create a second Railway service
+   - Set `RUN_MODE=worker`
+   - Configure Temporal Cloud credentials
+
+2. **Option B:** Use external worker
+   - Run worker on your infrastructure (AWS, Azure, on-prem)
+   - Keep Railway for web server only
+
+### Temporal Cloud Connection
+
+When running the worker with Temporal Cloud:
+
+```bash
+# Required environment variables
+TEMPORAL__HOST=<namespace>.<account-id>.tmprl.cloud:7233
+TEMPORAL__NAMESPACE=<namespace>.<account-id>
+TEMPORAL__API_KEY=<your-api-key>
+```
+
+**Connection Errors:**
+
+If you see:
+```
+RuntimeError: Failed client connect: transport error
+```
+
+Check:
+1. ✅ `TEMPORAL__API_KEY` is set correctly
+2. ✅ `TEMPORAL__HOST` format: `namespace.account-id.tmprl.cloud:7233`
+3. ✅ Network connectivity to Temporal Cloud
+4. ✅ Namespace exists and is active
+
+**Quick Fix:**
+Set `RUN_MODE=web` to bypass worker connection errors.
+
 ## Usage
 
 ### Manual Ingestion Trigger
