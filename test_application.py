@@ -219,6 +219,14 @@ def test_web_server():
             data = response.json()
             test_result("Ready response has checks", "checks" in data, str(data.get("checks", {})))
 
+        # Test /status endpoint (full health + ingestion status)
+        response = client.get("/status")
+        test_result("GET /status endpoint", response.status_code == 200, f"Status: {response.status_code}")
+        if response.status_code == 200:
+            data = response.json()
+            test_result("Status has ingestion", "ingestion" in data, "slack/notion/news status")
+            test_result("Status has dependencies", "dependencies" in data, "database/redis/temporal")
+
     except ImportError:
         test_result("Web Server", False, "TestClient not available (install: pip install httpx)")
     except Exception as e:
