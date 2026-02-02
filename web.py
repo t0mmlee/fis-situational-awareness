@@ -9,7 +9,7 @@ Temporal worker.
 import logging
 import os
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -135,6 +135,73 @@ async def readiness_check():
         checks=checks,
         timestamp=datetime.now().isoformat()
     )
+
+
+@app.get("/status", response_model=Dict[str, Any])
+async def status():
+    """
+    Full status and health check.
+
+    Returns service info, dependency connectivity, and ingestion pipeline status
+    (whether Slack, Notion, and news ingestion are configured and actually running).
+    """
+    # Dependency checks (same logic as /ready but no 503)
+    checks: Dict[str, bool] = {}
+    try:
+        from sqlalchemy import create_engine, text, pool
+        engine = create_engine(
+            str(config.database.url),
+            poolclass=pool.NullPool,
+            connect_args={"connect_timeout": 5}
+        )
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        engine.dispose()
+        checks["database"] = True
+    except Exception as e:
+        logger.debug(f"Database check: {e}")
+        checks["database"] = False
+
+    try:
+        import redis
+        r = redis.from_url(str(config.redis.url), socket_connect_timeout=5, socket_timeout=5)
+        r.ping()
+        r.close()
+        checks["redis"] = True
+    except Exception as e:
+        logger.debug(f"Redis check: {e}")
+        checks["redis"] = False
+
+    checks["temporal_configured"] = bool(config.temporal.host)
+
+    # Ingestion pipeline status: no workflows/activities are registered in main.py
+    ingestion_status: Dict[str, Dict[str, Any]] = {
+        "slack": {
+            "status": "agent_exists_not_scheduled",
+            "message": "SlackIngestionAgent exists but no Temporal workflow/activity is registered; ingestion not running.",
+        },
+        "notion": {
+            "status": "agent_exists_not_scheduled",
+            "message": "NotionIngestionAgent exists but no Temporal workflow/activity is registered; ingestion not running.",
+        },
+        "news": {
+            "status": "not_implemented",
+            "message": "Config has news_sources and sec_cik but no external/news agent or activity exists; news not being pulled.",
+        },
+    }
+
+    return {
+        "service": "FIS Situational Awareness System",
+        "version": "1.0.0",
+        "environment": config.environment,
+        "timestamp": datetime.now().isoformat(),
+        "dependencies": checks,
+        "ingestion": ingestion_status,
+        "summary": (
+            "Ingestion pipeline is not running: workflows and activities are commented out in main.py. "
+            "Notion and Slack agents exist but are never invoked; news/SEC ingestion is not implemented."
+        ),
+    }
 
 
 @app.get("/metrics")
