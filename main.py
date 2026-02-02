@@ -93,7 +93,7 @@ def run_web_server():
     logger.info(f"Starting web server on {host}:{port}")
 
     uvicorn.run(
-        "fis_situational_awareness.web:app",
+        "web:app",
         host=host,
         port=port,
         log_level=config.monitoring.log_level.lower(),
