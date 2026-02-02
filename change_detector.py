@@ -4,11 +4,12 @@ FIS Situational Awareness System - Change Detection Engine
 Detects material changes between entity snapshots and scores their significance.
 """
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
 import logging
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
-from .models import ChangeRecord
+from models import ChangeRecord
 
 
 logger = logging.getLogger(__name__)
@@ -155,7 +156,6 @@ class ChangeDetector:
             level
         )
 
-        import uuid
         return ChangeRecord(
             change_id=uuid.uuid4(),
             entity_type=entity_type,
@@ -167,7 +167,7 @@ class ChangeDetector:
             significance_score=score,
             significance_level=level,
             rationale=rationale,
-            change_timestamp=datetime.now()
+            change_timestamp=datetime.now(timezone.utc)
         )
 
     def _calculate_significance(

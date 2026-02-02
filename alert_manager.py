@@ -4,13 +4,14 @@ FIS Situational Awareness System - Alert Manager
 Formats and sends Slack notifications for high-significance changes.
 """
 
-from datetime import datetime, timedelta
-from typing import List, Optional
 import logging
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional
 
 from mcp import ClientSession
-from .models import ChangeRecord, AlertMessage
-from .config import config
+
+from config import config
+from models import AlertMessage, ChangeRecord
 
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ class AlertManager:
                 return True
 
         # Check for similar alerts in dedup window
-        cutoff_time = datetime.now() - timedelta(hours=self.dedup_window_hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.dedup_window_hours)
 
         for alert in alert_history:
             alert_time = alert.get("alert_timestamp")
@@ -134,7 +135,7 @@ class AlertManager:
             rationale=change.rationale,
             affected_entities=affected_entities,
             source_links=source_links,
-            timestamp=datetime.now()
+            timestamp=datetime.now(timezone.utc)
         )
 
         return alert

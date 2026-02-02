@@ -2,8 +2,8 @@
 Agent modules for monitoring different data sources.
 """
 
-from .base import BaseAgent
-from .slack_agent import SlackAgent
-from .notion_agent import NotionAgent
+from agents.base import BaseIngestionAgent
+from agents.slack_agent import SlackIngestionAgent
+from agents.notion_agent import NotionIngestionAgent
 
-__all__ = ["BaseAgent", "SlackAgent", "NotionAgent"]
+__all__ = ["BaseIngestionAgent", "SlackIngestionAgent", "NotionIngestionAgent"]

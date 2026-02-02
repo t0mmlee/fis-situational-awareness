@@ -124,7 +124,7 @@ class AlertingSettings(BaseSettings):
     """Alerting configuration."""
 
     channel_id: str = Field(
-        ...,
+        default="",
         description="Slack channel ID for alerts (#fis-situational-awareness)"
     )
     significance_threshold: int = Field(

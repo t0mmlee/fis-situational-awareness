@@ -14,6 +14,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -74,6 +75,8 @@ class EntitySnapshot(Base):
     __tablename__ = "entity_snapshots"
     __table_args__ = (
         UniqueConstraint("entity_type", "entity_id", "snapshot_timestamp", name="uix_entity_snapshot"),
+        Index("idx_entity_snapshots_type_id", "entity_type", "entity_id"),
+        Index("idx_entity_snapshots_timestamp", "snapshot_timestamp"),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -99,6 +102,12 @@ class DetectedChange(Base):
     """
 
     __tablename__ = "detected_changes"
+    __table_args__ = (
+        Index("idx_detected_changes_timestamp", "change_timestamp"),
+        Index("idx_detected_changes_score", "significance_score"),
+        Index("idx_detected_changes_entity", "entity_type", "entity_id"),
+        Index("idx_detected_changes_alert_sent", "alert_sent", "significance_score"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     change_timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
@@ -136,6 +145,10 @@ class AlertHistory(Base):
     """
 
     __tablename__ = "alert_history"
+    __table_args__ = (
+        Index("idx_alert_history_timestamp", "alert_timestamp"),
+        Index("idx_alert_history_change_id", "change_id"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     alert_timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
