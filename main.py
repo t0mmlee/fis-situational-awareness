@@ -60,16 +60,32 @@ async def run_temporal_worker():
             namespace=config.temporal.namespace
         )
 
-    # TODO: Import your workflows and activities
-    # from .workflows import IngestionWorkflow
-    # from .activities import slack_ingestion, notion_ingestion, external_ingestion
+    # Import workflows and activities
+    from workflows import IngestionWorkflow, ScheduledIngestionWorkflow
+    from activities import (
+        slack_ingestion,
+        notion_ingestion,
+        external_ingestion,
+        detect_changes,
+        process_alerts,
+        get_last_ingestion_timestamp,
+        update_last_ingestion_timestamp,
+    )
 
     # Create worker
     worker = Worker(
         client,
         task_queue=config.temporal.task_queue,
-        # workflows=[IngestionWorkflow],
-        # activities=[slack_ingestion, notion_ingestion, external_ingestion]
+        workflows=[IngestionWorkflow, ScheduledIngestionWorkflow],
+        activities=[
+            slack_ingestion,
+            notion_ingestion,
+            external_ingestion,
+            detect_changes,
+            process_alerts,
+            get_last_ingestion_timestamp,
+            update_last_ingestion_timestamp,
+        ]
     )
 
     logger.info(f"Temporal worker started on task queue: {config.temporal.task_queue}")
