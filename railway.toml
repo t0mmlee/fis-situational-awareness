@@ -11,10 +11,8 @@ healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
-# Run web server only (no Temporal worker)
-# This prevents connection errors when Temporal Cloud is not configured
-[deploy.env]
-RUN_MODE = "web"
+# NOTE: Environment variables must be set in Railway dashboard UI
+# Required variable: RUN_MODE=web (prevents Temporal connection errors)
 
 [[services]]
 name = "fis-awareness-app"
