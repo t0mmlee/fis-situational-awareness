@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fis-worker
+  namespace: fis-ai
+  labels:
+    app: fis-situational-awareness
+    component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fis-situational-awareness
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: fis-situational-awareness
+        component: worker
+    spec:
+      containers:
+      - name: worker
+        image: tribeai/fis-situational-awareness:latest
+        imagePullPolicy: Always
+        env:
+        - name: RUN_MODE
+          value: "worker"
+        - name: ENVIRONMENT
+          value: "production"
+
+        # Temporal Configuration
+        - name: TEMPORAL__HOST
+          value: "ap-northeast-1.aws.api.temporal.io:7233"
+        - name: TEMPORAL__NAMESPACE
+          valueFrom:
+            secretKeyRef:
+              name: temporal-secret
+              key: namespace
+        - name: TEMPORAL__API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: temporal-secret
+              key: api_key
+        - name: TEMPORAL__TASK_QUEUE
+          value: "fis-ingestion"
+
+        # Database Configuration
+        - name: DATABASE__URL
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: connection_string
+
+        # Redis Configuration
+        - name: REDIS__URL
+          value: "redis://redis-service:6379/0"
+
+        # MCP Configuration
+        - name: MCP__SERVER_PATH
+          value: "uvx"
+        - name: MCP__SERVER_ARGS
+          value: '["mcp-server-tribe"]'
+
+        # Alerting Configuration
+        - name: ALERT__CHANNEL_ID
+          valueFrom:
+            secretKeyRef:
+              name: slack-secret
+              key: alert_channel_id
+        - name: ALERT__SIGNIFICANCE_THRESHOLD
+          value: "75"
+
+        # AI Configuration (optional)
+        - name: AI__API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-secret
+              key: api_key
+              optional: true
+        - name: AI__MODEL
+          value: "claude-sonnet-4-5-20250929"
+
+        # Monitoring
+        - name: MONITORING__LOG_LEVEL
+          value: "INFO"
+
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+
+        # Health checks (not applicable for worker, but included for consistency)
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "import sys; sys.exit(0)"
+          initialDelaySeconds: 60
+          periodSeconds: 300
+
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fis-worker
+  namespace: fis-ai
+spec:
+  selector:
+    app: fis-situational-awareness
+    component: worker
+  ports:
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  type: ClusterIP
