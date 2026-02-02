@@ -31,6 +31,104 @@ app = FastAPI(
 )
 
 
+async def send_startup_notification():
+    """
+    Send a Slack notification when the system starts up.
+
+    This provides visibility into system restarts and deployments.
+    """
+    try:
+        # Only send notification if channel ID is configured
+        if not config.alerting.channel_id or config.alerting.channel_id == "C000000000":
+            logger.info("Startup notification skipped: ALERT__CHANNEL_ID not configured")
+            return
+
+        # Import MCP dependencies
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+
+        # Get run mode
+        run_mode = os.getenv("RUN_MODE", "both")
+
+        # Create startup message
+        message = f"""🟢 **FIS Situational Awareness System Started**
+
+**Status:** Active
+**Environment:** {config.environment}
+**Mode:** {run_mode}
+**Timestamp:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
+**Version:** 1.0.0
+
+"""
+
+        # Add mode-specific information
+        if run_mode == "web":
+            message += """**Capabilities:**
+✅ Health check endpoint (`/health`)
+✅ Status monitoring endpoint (`/status`)
+✅ Metrics endpoint (`/metrics`)
+⏸️ Temporal worker (disabled in web-only mode)
+
+_Note: Deploy a separate worker service to enable ingestion and alerting._"""
+        elif run_mode == "worker":
+            message += """**Capabilities:**
+✅ Temporal worker (ingestion workflows)
+✅ Change detection and scoring
+✅ Slack alerting for CRITICAL changes
+⏸️ Web server (disabled in worker-only mode)
+
+_Ingestion will run every 3 days automatically._"""
+        else:
+            message += """**Capabilities:**
+✅ Health check endpoint (`/health`)
+✅ Status monitoring endpoint (`/status`)
+✅ Temporal worker (ingestion workflows)
+✅ Change detection and scoring
+✅ Slack alerting for CRITICAL changes
+
+_Fully operational - ingestion runs every 3 days._"""
+
+        message += f"\n\n_System ID: {os.getenv('RAILWAY_SERVICE_ID', 'local')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
+
+        # Create MCP session and send message
+        server_params = StdioServerParameters(
+            command=config.mcp.server_path,
+            args=config.mcp.server_args,
+        )
+
+        async with stdio_client(server_params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+
+                # Send message to Slack
+                result = await session.call_tool(
+                    "slack_send_message",
+                    arguments={
+                        "channel_id": config.alerting.channel_id,
+                        "text": message
+                    }
+                )
+
+                logger.info(f"Startup notification sent to Slack channel {config.alerting.channel_id}")
+
+    except Exception as e:
+        # Don't fail startup if notification fails
+        logger.warning(f"Failed to send startup notification: {e}")
+        logger.warning("Continuing startup without notification")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    FastAPI startup event handler.
+
+    Sends a notification to Slack when the system starts.
+    """
+    logger.info("FastAPI application starting up")
+    await send_startup_notification()
+    logger.info("FastAPI application startup complete")
+
+
 class HealthResponse(BaseModel):
     """Health check response model."""
     status: str
