@@ -5,11 +5,11 @@ Ingests FIS-related data from Notion via Tribe MCP.
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from .base import BaseIngestionAgent, IngestionResult
-from ..config import config
+from agents.base import BaseIngestionAgent, IngestionResult
+from config import config
 
 
 class NotionIngestionAgent(BaseIngestionAgent):
@@ -28,7 +28,7 @@ class NotionIngestionAgent(BaseIngestionAgent):
 
     async def ingest(self, since: Optional[datetime] = None) -> IngestionResult:
         """Ingest Notion data."""
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         errors = []
 
         try:
@@ -54,7 +54,7 @@ class NotionIngestionAgent(BaseIngestionAgent):
             entities = await self.normalize(raw_pages)
             self.logger.info(f"Extracted {len(entities)} entities from Notion")
 
-            duration = (datetime.now() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return IngestionResult(
                 source=self.source_name,
@@ -63,13 +63,13 @@ class NotionIngestionAgent(BaseIngestionAgent):
                 items_changed=len(entities),
                 errors=errors,
                 duration_seconds=duration,
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
 
         except Exception as e:
             self.logger.error(f"Notion ingestion failed: {e}")
             errors.append(str(e))
-            duration = (datetime.now() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             return IngestionResult(
                 source=self.source_name,
                 success=False,
@@ -77,7 +77,7 @@ class NotionIngestionAgent(BaseIngestionAgent):
                 items_changed=0,
                 errors=errors,
                 duration_seconds=duration,
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
 
     async def _fetch_page(self, page_id: str) -> Dict[str, Any]:
@@ -107,13 +107,13 @@ class NotionIngestionAgent(BaseIngestionAgent):
             return {
                 "page_id": page_id,
                 "content": parsed["text"],
-                "last_edited": datetime.now()  # Would need to extract from metadata
+                "last_edited": datetime.now(timezone.utc)  # Would need to extract from metadata
             }
 
         return {
             "page_id": page_id,
             "content": str(parsed),
-            "last_edited": datetime.now()
+            "last_edited": datetime.now(timezone.utc)
         }
 
     def _parse_notion_search_results(self, content: Any) -> List[Dict[str, Any]]:
@@ -131,7 +131,7 @@ class NotionIngestionAgent(BaseIngestionAgent):
                 pages.append({
                     "page_id": page_id,
                     "content": "",  # Would need to fetch full content
-                    "last_edited": datetime.now()
+                    "last_edited": datetime.now(timezone.utc)
                 })
 
         return pages
@@ -173,7 +173,7 @@ class NotionIngestionAgent(BaseIngestionAgent):
                     "role": role.strip(),
                     "email": email.strip(),
                     "company": "FIS" if "fisglobal.com" in email else "Unknown",
-                    "last_seen": datetime.now().isoformat()
+                    "last_seen": datetime.now(timezone.utc).isoformat()
                 }
             }
             stakeholders.append(stakeholder)
@@ -204,7 +204,7 @@ class NotionIngestionAgent(BaseIngestionAgent):
                     "data": {
                         "name": program_name,
                         "status": status,
-                        "last_updated": page.get("last_edited", datetime.now()).isoformat(),
+                        "last_updated": page.get("last_edited", datetime.now(timezone.utc)).isoformat(),
                         "source": f"notion://{page['page_id']}"
                     }
                 }
@@ -230,7 +230,7 @@ class NotionIngestionAgent(BaseIngestionAgent):
                         "severity": "Medium",
                         "description": f"Risk mentioned in Notion: {keyword}",
                         "status": "Open",
-                        "first_detected": datetime.now().isoformat(),
+                        "first_detected": datetime.now(timezone.utc).isoformat(),
                         "source": f"notion://{page['page_id']}"
                     }
                 }

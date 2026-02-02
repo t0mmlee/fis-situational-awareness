@@ -4,11 +4,12 @@ FIS Situational Awareness System - Base Ingestion Agent
 Abstract base class for all ingestion agents.
 """
 
-from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Any, Dict, List, Optional
-import logging
+import asyncio
 import json
+import logging
+from abc import ABC, abstractmethod
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 from mcp import ClientSession
 from pydantic import BaseModel
@@ -172,6 +173,3 @@ class BaseIngestionAgent(ABC):
             f"{len(result.errors)} errors, "
             f"{result.duration_seconds:.2f}s"
         )
-
-
-import asyncio

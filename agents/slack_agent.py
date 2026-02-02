@@ -5,11 +5,11 @@ Ingests FIS-related data from Slack via Tribe MCP.
 """
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from .base import BaseIngestionAgent, IngestionResult
-from ..config import config
+from agents.base import BaseIngestionAgent, IngestionResult
+from config import config
 
 
 class SlackIngestionAgent(BaseIngestionAgent):
@@ -34,7 +34,7 @@ class SlackIngestionAgent(BaseIngestionAgent):
         Returns:
             IngestionResult with stats
         """
-        start_time = datetime.now()
+        start_time = datetime.now(timezone.utc)
         errors = []
 
         try:
@@ -51,7 +51,7 @@ class SlackIngestionAgent(BaseIngestionAgent):
             entities = await self.normalize(enriched_messages)
             self.logger.info(f"Extracted {len(entities)} entities from Slack")
 
-            duration = (datetime.now() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
 
             return IngestionResult(
                 source=self.source_name,
@@ -60,13 +60,13 @@ class SlackIngestionAgent(BaseIngestionAgent):
                 items_changed=len(entities),
                 errors=errors,
                 duration_seconds=duration,
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
 
         except Exception as e:
             self.logger.error(f"Slack ingestion failed: {e}")
             errors.append(str(e))
-            duration = (datetime.now() - start_time).total_seconds()
+            duration = (datetime.now(timezone.utc) - start_time).total_seconds()
             return IngestionResult(
                 source=self.source_name,
                 success=False,
@@ -74,7 +74,7 @@ class SlackIngestionAgent(BaseIngestionAgent):
                 items_changed=0,
                 errors=errors,
                 duration_seconds=duration,
-                timestamp=datetime.now()
+                timestamp=datetime.now(timezone.utc)
             )
 
     async def _search_slack(self, since: Optional[datetime] = None) -> List[Dict[str, Any]]:
@@ -255,7 +255,7 @@ class SlackIngestionAgent(BaseIngestionAgent):
                     "name": msg["user_name"],
                     "role": "Unknown",  # Would need to enrich with user profile
                     "company": "Unknown",
-                    "last_seen": msg.get("timestamp", datetime.now()).isoformat()
+                    "last_seen": msg.get("timestamp", datetime.now(timezone.utc)).isoformat()
                 }
             }
             stakeholders.append(stakeholder)
@@ -292,7 +292,7 @@ class SlackIngestionAgent(BaseIngestionAgent):
                     "data": {
                         "name": program_name,
                         "status": status,
-                        "last_updated": msg.get("timestamp", datetime.now()).isoformat(),
+                        "last_updated": msg.get("timestamp", datetime.now(timezone.utc)).isoformat(),
                         "source": f"slack://{msg.get('channel_id')}/{msg.get('message_ts')}"
                     }
                 }
@@ -324,7 +324,7 @@ class SlackIngestionAgent(BaseIngestionAgent):
                     "severity": severity,
                     "description": msg.get("text", "")[:200],
                     "status": "Open",
-                    "first_detected": msg.get("timestamp", datetime.now()).isoformat(),
+                    "first_detected": msg.get("timestamp", datetime.now(timezone.utc)).isoformat(),
                     "source": f"slack://{msg.get('channel_id')}/{msg.get('message_ts')}"
                 }
             }
@@ -356,7 +356,7 @@ class SlackIngestionAgent(BaseIngestionAgent):
                     "entity_id": self.extract_entity_id("timeline", {"milestone": milestone}),
                     "data": {
                         "milestone": milestone,
-                        "target_date": msg.get("timestamp", datetime.now()).isoformat(),  # Would need to parse actual date
+                        "target_date": msg.get("timestamp", datetime.now(timezone.utc)).isoformat(),  # Would need to parse actual date
                         "status": "On Track",  # Default
                         "source": f"slack://{msg.get('channel_id')}/{msg.get('message_ts')}"
                     }

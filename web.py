@@ -81,10 +81,16 @@ async def readiness_check():
 
     # Check database connection
     try:
-        from sqlalchemy import create_engine, text
-        engine = create_engine(str(config.database.url))
+        from sqlalchemy import create_engine, text, pool
+
+        engine = create_engine(
+            str(config.database.url),
+            poolclass=pool.NullPool,  # Don't pool connections for health checks
+            connect_args={"connect_timeout": 5}
+        )
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
+        engine.dispose()  # Properly close all connections
         checks["database"] = True
     except Exception as e:
         logger.error(f"Database check failed: {e}")
@@ -93,8 +99,14 @@ async def readiness_check():
     # Check Redis connection
     try:
         import redis
-        r = redis.from_url(str(config.redis.url))
+
+        r = redis.from_url(
+            str(config.redis.url),
+            socket_connect_timeout=5,
+            socket_timeout=5
+        )
         r.ping()
+        r.close()  # Properly close the connection
         checks["redis"] = True
     except Exception as e:
         logger.error(f"Redis check failed: {e}")
