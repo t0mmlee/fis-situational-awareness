@@ -320,6 +320,35 @@ async def status():
     }
 
 
+@app.get("/test-slack-notification")
+async def test_slack_notification():
+    """
+    Test endpoint to manually trigger a Slack notification.
+
+    Returns configuration status and attempts to send a test message.
+    """
+    result = {
+        "config": {
+            "channel_id": config.alerting.channel_id,
+            "channel_id_set": bool(config.alerting.channel_id and config.alerting.channel_id != "C000000000"),
+            "mcp_server_path": config.mcp.server_path,
+            "mcp_server_args": config.mcp.server_args,
+        },
+        "notification_sent": False,
+        "error": None
+    }
+
+    try:
+        await send_startup_notification()
+        result["notification_sent"] = True
+        result["message"] = "Notification sent successfully"
+    except Exception as e:
+        result["error"] = str(e)
+        result["message"] = f"Failed to send notification: {str(e)}"
+
+    return result
+
+
 @app.get("/metrics")
 async def metrics():
     """
