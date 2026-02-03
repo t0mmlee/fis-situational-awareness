@@ -16,8 +16,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install MCP server
-RUN pip install --no-cache-dir mcp
+# Install MCP SDK and uvx for MCP server management
+RUN pip install --no-cache-dir mcp uvx
+
+# Install Tribe MCP server
+# Note: In production, configure with Slack OAuth tokens via environment variables
+RUN pip install --no-cache-dir mcp-server-tribe || echo "mcp-server-tribe will be installed via uvx at runtime"
 
 # Copy application code
 COPY . .
