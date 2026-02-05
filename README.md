@@ -9,6 +9,7 @@ This system maintains situational awareness on FIS by:
 - **Detecting** material changes (leadership, program status, risks, timelines, external events)
 - **Scoring** significance of each change (0-100 scale)
 - **Alerting** stakeholders in Slack when CRITICAL changes occur (score ≥ 75)
+- **Weekly Digest** Executive summary every Monday at 08:00 PT (≤250 words)
 
 **Key Features:**
 - ✅ MCP-First: All internal integrations via Tribe MCP server (no direct APIs)
@@ -16,6 +17,7 @@ This system maintains situational awareness on FIS by:
 - ✅ Auditable: Complete trail of ingestions, changes, and alert decisions
 - ✅ Extensible: Add new MCP tools without architectural changes
 - ✅ Enterprise-Grade: Idempotent, resilient, observable
+- ✅ Weekly Executive Digest: Automated account summary with risks, opportunities, and actions
 
 ## Architecture
 

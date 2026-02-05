@@ -551,3 +551,47 @@ async def update_last_ingestion_timestamp(timestamp: str) -> Dict[str, Any]:
     """
     # This is a no-op since we track timestamps in ingestion_runs table
     return {"success": True, "timestamp": timestamp}
+
+
+@activity.defn
+async def generate_weekly_digest() -> Dict[str, Any]:
+    """
+    Generate and send weekly executive digest.
+
+    Returns:
+        Digest generation result dictionary
+    """
+    activity.logger.info("Starting weekly digest generation activity")
+
+    db = get_db()
+    try:
+        # Create MCP session for Slack delivery
+        server_params = StdioServerParameters(
+            command=config.mcp.server_path,
+            args=config.mcp.server_args,
+        )
+
+        async with stdio_client(server_params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+
+                # Import DigestGenerator
+                from digest_generator import DigestGenerator
+
+                # Create digest generator and run
+                generator = DigestGenerator(db, session)
+                result = await generator.generate_and_send_digest()
+
+                activity.logger.info(
+                    f"Weekly digest generated and sent: "
+                    f"{result.get('changes_analyzed', 0)} changes analyzed, "
+                    f"{result.get('word_count', 0)} words"
+                )
+
+                return result
+
+    except Exception as e:
+        activity.logger.error(f"Weekly digest generation failed: {e}")
+        raise
+    finally:
+        db.close()
