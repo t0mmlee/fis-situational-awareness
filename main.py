@@ -41,21 +41,18 @@ async def run_temporal_worker():
     # Use TLS and API key if connecting to Temporal Cloud
     if config.temporal.api_key:
         # Temporal Cloud connection with TLS and API key
-        from temporalio.client import TLSConfig
-
-        tls_config = TLSConfig(
-            # Temporal Cloud requires TLS
-            # Default system cert verification is used
-        )
+        logger.info("Connecting to Temporal Cloud with TLS and API key")
 
         client = await Client.connect(
             config.temporal.host,
             namespace=config.temporal.namespace,
-            tls=tls_config,
+            tls=True,  # Use simple boolean for Temporal Cloud
             api_key=config.temporal.api_key
         )
     else:
         # Local Temporal server connection
+        logger.info("Connecting to Temporal server without authentication")
+
         client = await Client.connect(
             config.temporal.host,
             namespace=config.temporal.namespace
