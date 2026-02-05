@@ -1,0 +1,58 @@
+# FIS Situational Awareness System - Railway-Optimized Dockerfile
+# This version includes Node.js for MCP server (uvx)
+
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies including Node.js
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    curl \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pipx and uvx for MCP server
+RUN pip install --no-cache-dir pipx && \
+    pipx install uvx && \
+    pipx ensurepath
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install MCP packages
+RUN pip install --no-cache-dir mcp
+
+# Install MCP server via npm globally (for Railway)
+RUN npm install -g @modelcontextprotocol/server-everything || \
+    echo "Warning: MCP server installation failed, will need external MCP"
+
+# Copy application code
+COPY . .
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Add pipx/uvx to PATH
+ENV PATH="/home/appuser/.local/bin:${PATH}"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
+
+# Expose Railway dynamic port
+EXPOSE ${PORT:-8080}
+
+# Expose metrics port
+EXPOSE 9090
+
+# Default command (run Temporal worker)
+CMD ["python", "main.py"]
