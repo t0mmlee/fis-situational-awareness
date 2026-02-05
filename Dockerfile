@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Install MCP server
 RUN pip install --no-cache-dir mcp
-
+RUN pip install --no-cache-dir uv
 # Copy application code
 COPY . .
 
