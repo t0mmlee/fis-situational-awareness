@@ -30,6 +30,7 @@ async def run_temporal_worker():
     - Scheduled ingestion every 3 days
     - Change detection and scoring
     - Alert generation and delivery
+    - Weekly executive digest (Mondays 08:00 PT)
     """
     from temporalio.client import Client
     from temporalio.worker import Worker
@@ -61,7 +62,7 @@ async def run_temporal_worker():
         )
 
     # Import workflows and activities
-    from workflows import IngestionWorkflow, ScheduledIngestionWorkflow
+    from workflows import IngestionWorkflow, ScheduledIngestionWorkflow, WeeklyDigestWorkflow
     from activities import (
         slack_ingestion,
         notion_ingestion,
@@ -70,13 +71,14 @@ async def run_temporal_worker():
         process_alerts,
         get_last_ingestion_timestamp,
         update_last_ingestion_timestamp,
+        generate_weekly_digest,
     )
 
     # Create worker
     worker = Worker(
         client,
         task_queue=config.temporal.task_queue,
-        workflows=[IngestionWorkflow, ScheduledIngestionWorkflow],
+        workflows=[IngestionWorkflow, ScheduledIngestionWorkflow, WeeklyDigestWorkflow],
         activities=[
             slack_ingestion,
             notion_ingestion,
@@ -85,6 +87,7 @@ async def run_temporal_worker():
             process_alerts,
             get_last_ingestion_timestamp,
             update_last_ingestion_timestamp,
+            generate_weekly_digest,
         ]
     )
 

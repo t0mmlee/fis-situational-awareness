@@ -187,3 +187,46 @@ class ScheduledIngestionWorkflow:
             "since": since,
             "result": result,
         }
+
+
+@workflow.defn
+class WeeklyDigestWorkflow:
+    """
+    Weekly executive digest workflow.
+
+    Runs every Monday at 08:00 PT to generate and send a weekly
+    executive summary of FIS account status and changes.
+    """
+
+    @workflow.run
+    async def run(self) -> dict:
+        """
+        Generate and send weekly executive digest.
+
+        Returns:
+            Workflow execution summary
+        """
+        workflow.logger.info("Starting weekly digest workflow")
+
+        # Define retry policy for digest activity
+        retry_policy = RetryPolicy(
+            initial_interval=timedelta(seconds=2),
+            maximum_interval=timedelta(seconds=30),
+            maximum_attempts=3,
+            backoff_coefficient=2.0,
+        )
+
+        # Generate and send digest
+        digest_result = await workflow.execute_activity(
+            "generate_weekly_digest",
+            start_to_close_timeout=timedelta(minutes=5),
+            retry_policy=retry_policy,
+        )
+
+        workflow.logger.info("Weekly digest workflow completed")
+
+        return {
+            "status": "completed",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "result": digest_result,
+        }
